@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[43]:
+# In[45]:
 
 
 import random 
@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 
 
-# In[46]:
+# In[43]:
 
 
 class SeggregateData:
@@ -99,7 +99,7 @@ class SeggregateData:
                              horizontal_flip=True,
                              rotation_range=45,
                              brightness_range=[0.3,1.0],
-                             zoom_range=[0.2,0.7])
+                             zoom_range=[0.3,1.0])
     
     def augmentParams(self, aug_params):
         return self.augmentTypeParams().flow(aug_params['params']['sample'], # image sample to augment
@@ -110,10 +110,10 @@ class SeggregateData:
                                              save_format=aug_params['params']['save_format'] # image format
                                             )
         
-    def augment(self, ddir, aug_count, **aug_params):
-        for dir_path in obj.getSubDirs(ddir):
+    def augmentFromDirectory(self, ddir, aug_count, **aug_params):
+        for dir_path in obj.getSubDirs(ddir): # iterate over subdirectories from base directory
             aug_params['params']['save_to_dir']=dir_path
-            for file_path in obj.getFiles(dir_path):
+            for file_path in obj.getFiles(dir_path): #iterate over files from directory
                 img = load_img(file_path) # load the image
                 data = img_to_array(img) # convert to numpy array
                 aug_params['params']['sample']=expand_dims(data, 0) # expand dimension to one sample
@@ -121,6 +121,16 @@ class SeggregateData:
                 datagen_itr = self.augmentParams(aug_params) # prepare iterator
                 imgs = [datagen_itr.next()[0] for i in range(aug_count)] # generate samples and plot
                 #self.plotImages(imgs, aug_count)
+    
+    def augmentFromFile(self, file_path, aug_count, **aug_params):
+        aug_params['params']['save_to_dir']='/'.join(file_path.split('/')[:-1]) #extract directory from file path
+        img = load_img(file_path) # load the image
+        data = img_to_array(img) # convert to numpy array
+        aug_params['params']['sample']=expand_dims(data, 0) # expand dimension to one sample
+        aug_params['params']['save_prefix']=file_path.split('.')[0].split('/')[-1] # create image data augmentation generator
+        datagen_itr = self.augmentParams(aug_params) # prepare iterator
+        imgs = [datagen_itr.next()[0] for i in range(aug_count)] # generate samples and plot
+        #self.plotImages(imgs, aug_count)
         
         
 
@@ -132,16 +142,34 @@ class SeggregateData:
 # folders=('images/', 'test/', 'train/') #tuple(args["folders"]) 
 # obj=SeggregateData(base, folders)
 # obj.seggregate()
-# augdir = ['/home/dai/Documents/pgdai/project/face_recognition/dataset/data/test',
-#                  '/home/dai/Documents/pgdai/project/face_recognition/dataset/data/train']
-# for ddir in augdir : #args['augdir']
-#     obj.augment(ddir, 5, params={'batch_size':1, 'save_format':'jpeg'})
 
 
 # In[ ]:
 
 
-if  __name__ == '__main__':
+# augdir = ['/home/dai/Documents/pgdai/project/face_recognition/dataset/data/test',
+#                  '/home/dai/Documents/pgdai/project/face_recognition/dataset/data/train']
+# obj1 = SeggregateData()
+# for ddir in augdir : #args['augdir']
+#     obj.augmentFromDirectory(ddir, 5, params={'batch_size':1, 'save_format':'jpeg'})
+
+
+# In[44]:
+
+
+# augfiles = [
+#     '/home/dai/Documents/pgdai/project/FFR/data/trail/Walter_Mondale/Walter_Mondale_0001.jpg',
+#     '/home/dai/Documents/pgdai/project/FFR/data/trail/Zico/Zico_0001.jpg',
+#     ]
+# obj2 = SeggregateData()
+# for filepath in augfiles : #args['augfiles']
+#     obj2.augmentFromFile(filepath, 5, params={'batch_size':1, 'save_format':'jpeg'})
+
+
+# In[ ]:
+
+
+if __name__ == '__main__':
     parser = ArgumentParser(description="parser for various directory paths")
     parser.add_argument("--base_dir", help="base directory path",
                             dest='base')
@@ -149,14 +177,20 @@ if  __name__ == '__main__':
                             nargs='+', dest='folders')
     parser.add_argument('--aug_dirs', help= ' directories path for augmentation',
                             nargs='+', dest='augdir')
+    parser.add_argument('--aug_files', help= ' files path for augmentation',
+                            nargs='+', dest='augfiles')
     args = vars(parser.parse_args())
     if all(v is not None for v in [args["base"], args["folders"]]):
-        base  =args["base"] #'/home/dai/Documents/pgdai/project/face_recognition/dataset/data/'
-        folders = tuple(args["folders"]) #('images/', 'test/', 'train/')
+        base  =args["base"] 
+        folders = tuple(args["folders"]) 
         obj = SeggregateData(base, folders)
         obj.seggregate()
     if args["augdir"] is not None:
-        obj = SeggregateData()
+        obj1 = SeggregateData()
         for ddir in args['augdir']:
-            obj.augment(train_dir, 5, params={'batch_size':1, 'save_format':'jpeg'})
+            obj1.augmentFromDirectory(ddir, 5, params={'batch_size':1, 'save_format':'jpeg'})
+    if args["augfiles"] is not None:
+        obj2 = SeggregateData()
+        for filepath in args['augfiles']:
+            obj2.augmentFromFile(filepath, 5, params={'batch_size':1, 'save_format':'jpeg'})
 
